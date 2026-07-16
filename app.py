@@ -3,10 +3,10 @@ import json
 import os
 import yt_dlp
 
-# Настройка страницы (центрированный макет для красивого отображения на ПК и мобильных)
+# Настройка страницы
 st.set_page_config(page_title="Музыкальный плеер", layout="centered", page_icon="🎵")
 
-# CSS для крупных шрифтов и красивых кнопок
+# CSS для крупных шрифтов и стилизации кнопок под пальцы
 st.markdown("""
 <style>
     /* Увеличенный шрифт для удобства родителей */
@@ -14,7 +14,7 @@ st.markdown("""
         font-size: 16px !important;
     }
     
-    /* Стилизация кнопок под пальцы (высота не менее 45px для удобного нажатия) */
+    /* Стилизация кнопок под пальцы (высота не менее 45px) */
     div.stButton > button {
         border-radius: 12px !important;
         font-size: 15px !important;
@@ -153,7 +153,7 @@ if st.session_state.current_track and st.session_state.current_audio_url:
     audio_url = st.session_state.current_audio_url
     
     st.markdown(f"""
-    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px; background-color: #1e1e1e; padding: 15px; border-radius: 15px; border-left: 5px solid #1DB954;">
+    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px; background-color: #1e1e1e; padding: 15px; border-radius: 15px; border-left: 5px solid #1DB954; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
         <img src="{track["image"]}" style="width: 70px; height: 70px; border-radius: 10px; object-fit: cover;">
         <div>
             <div style="font-size: 13px; font-weight: bold; color: #1DB954; text-transform: uppercase;">Сейчас играет:</div>
@@ -182,18 +182,18 @@ tab_main, tab_favs = st.tabs(["✨ Главная (Рекомендации)", "
 # Функция вывода списка треков
 def render_song_list(songs, unique_suffix):
     for song in songs:
-        # Карточка трека (Картинка + Название + Автор) во всю ширину
+        # Карточка трека с фиксированным темным фоном для идеальной видимости текста в любой теме
         st.markdown(f"""
-        <div style="display: flex; align-items: center; gap: 15px; margin-top: 15px; margin-bottom: 8px;">
-            <img src="{song["image"]}" style="width: 60px; height: 60px; border-radius: 10px; object-fit: cover; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
+        <div style="display: flex; align-items: center; gap: 15px; margin-top: 15px; margin-bottom: 8px; background-color: #1c1c1e; padding: 12px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.25);">
+            <img src="{song["image"]}" style="width: 60px; height: 60px; border-radius: 8px; object-fit: cover;">
             <div>
-                <div style="font-weight: bold; font-size: 16px; color: #FFFFFF; line-height: 1.3;">{song['title']}</div>
-                <div style="font-size: 13px; color: #B3B3B3; margin-top: 3px;">{song['artist']}</div>
+                <div style="font-weight: bold; font-size: 15px; color: #FFFFFF; line-height: 1.3;">{song['title']}</div>
+                <div style="font-size: 13px; color: #A4A4A4; margin-top: 4px;">{song['artist']}</div>
             </div>
         </div>
         """, unsafe_allow_html=True)
         
-        # Кнопки действия располагаются строкой ниже, чтобы не сжимать текст
+        # Кнопки действия строкой ниже
         col_btn_play, col_btn_fav = st.columns(2)
         
         with col_btn_play:

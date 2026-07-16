@@ -3,18 +3,18 @@ import json
 import os
 import yt_dlp
 
-# Настройка страницы (используем centered layout, чтобы на ПК приложение выглядело как аккуратный мобильный плеер)
+# Настройка страницы (центрированный макет для красивого отображения на ПК и мобильных)
 st.set_page_config(page_title="Музыкальный плеер", layout="centered", page_icon="🎵")
 
-# Внедряем CSS стили для адаптивности, крупных шрифтов и удобных кнопок
+# CSS для крупных шрифтов и красивых кнопок
 st.markdown("""
 <style>
-    /* Увеличенный шрифт для лучшей читаемости */
+    /* Увеличенный шрифт для удобства родителей */
     html, body, [class*="css"] {
         font-size: 16px !important;
     }
     
-    /* Делаем кнопки крупными (не менее 44px в высоту), чтобы по ним было удобно кликать пальцем */
+    /* Стилизация кнопок под пальцы (высота не менее 45px для удобного нажатия) */
     div.stButton > button {
         border-radius: 12px !important;
         font-size: 15px !important;
@@ -23,16 +23,16 @@ st.markdown("""
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
+        margin-top: 5px !important;
         margin-bottom: 5px !important;
     }
     
-    /* Крупный и четкий текст для вкладок */
+    /* Шрифт для вкладок */
     button[data-baseweb="tab"] {
         font-size: 17px !important;
         font-weight: bold !important;
     }
     
-    /* Убираем лишние отступы, чтобы на экранах телефонов помещалось больше информации */
     .block-container {
         padding-top: 2rem !important;
         padding-bottom: 2rem !important;
@@ -67,7 +67,7 @@ if "current_track" not in st.session_state:
 if "current_audio_url" not in st.session_state:
     st.session_state.current_audio_url = None
 
-# Функция поиска на YouTube через yt-dlp
+# Функция поиска на YouTube
 @st.cache_data(ttl=600)
 def search_youtube(query, limit=10):
     ydl_opts = {
@@ -141,34 +141,32 @@ st.title("🎵 Мобильный MP3 Плеер")
 st.write("### 🔍 Поиск песни")
 search_input = st.text_input(
     "Введите название песни или исполнителя и нажмите Enter", 
-    placeholder="Например: MACAN, Любэ, Coldplay...", 
+    placeholder="Например: MACAN, Любэ, Кино...", 
     key="search_bar",
     label_visibility="collapsed"
 )
 
-# 2. АУДИОПЛЕЕР (Отображается, когда запущен трек)
+# 2. АУДИОПЛЕЕР (Отображается сверху при воспроизведении)
 if st.session_state.current_track and st.session_state.current_audio_url:
     st.write("---")
     track = st.session_state.current_track
     audio_url = st.session_state.current_audio_url
     
-    # Красивое отображение играющего трека
     st.markdown(f"""
-    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px; background-color: #1e1e1e; padding: 15px; border-radius: 15px;">
+    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px; background-color: #1e1e1e; padding: 15px; border-radius: 15px; border-left: 5px solid #1DB954;">
         <img src="{track["image"]}" style="width: 70px; height: 70px; border-radius: 10px; object-fit: cover;">
         <div>
-            <div style="font-size: 18px; font-weight: bold; color: #1DB954;">Сейчас играет:</div>
-            <div style="font-size: 16px; font-weight: bold; color: white;">{track['title']}</div>
+            <div style="font-size: 13px; font-weight: bold; color: #1DB954; text-transform: uppercase;">Сейчас играет:</div>
+            <div style="font-size: 17px; font-weight: bold; color: white; margin-top: 2px;">{track['title']}</div>
             <div style="font-size: 14px; color: #b3b3b3;">{track['artist']}</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
     
-    # Чистый аудиоплеер
     st.audio(audio_url, format="audio/mp3", autoplay=True)
     st.write("---")
 
-# 3. НАСТРОЙКИ РЕКОМЕНДАЦИЙ (Выбор языка и категории)
+# 3. НАСТРОЙКИ РЕКОМЕНДАЦИЙ
 st.write("### ⚙️ Настройки музыки")
 col_lang, col_cat = st.columns(2)
 with col_lang:
@@ -181,27 +179,25 @@ recs_query = get_recommendation_query(selected_lang, selected_cat)
 # Вкладки плеера
 tab_main, tab_favs = st.tabs(["✨ Главная (Рекомендации)", "⭐ Моё Избранное"])
 
-# Функция для вывода списка треков (адаптированная под мобильный и ПК)
+# Функция вывода списка треков
 def render_song_list(songs, unique_suffix):
     for song in songs:
-        # 3 колонки: [Контент (картинка + текст), Кнопка играть, Кнопка избранного]
-        # Соотношение 4:1.2:1.2 отлично помещается на экранах любых смартфонов
-        col_content, col_play, col_fav = st.columns([4, 1.2, 1.2])
-        
-        with col_content:
-            # HTML-карточка песни: картинка и текст в одной строке
-            st.markdown(f"""
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px; height: 50px;">
-                <img src="{song["image"]}" style="width: 50px; height: 50px; border-radius: 8px; object-fit: cover;">
-                <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                    <div style="font-weight: bold; font-size: 15px; color: #FFFFFF; overflow: hidden; text-overflow: ellipsis; max-width: 250px;">{song['title']}</div>
-                    <div style="font-size: 13px; color: #B3B3B3; overflow: hidden; text-overflow: ellipsis; max-width: 250px;">{song['artist']}</div>
-                </div>
+        # Карточка трека (Картинка + Название + Автор) во всю ширину
+        st.markdown(f"""
+        <div style="display: flex; align-items: center; gap: 15px; margin-top: 15px; margin-bottom: 8px;">
+            <img src="{song["image"]}" style="width: 60px; height: 60px; border-radius: 10px; object-fit: cover; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
+            <div>
+                <div style="font-weight: bold; font-size: 16px; color: #FFFFFF; line-height: 1.3;">{song['title']}</div>
+                <div style="font-size: 13px; color: #B3B3B3; margin-top: 3px;">{song['artist']}</div>
             </div>
-            """, unsafe_allow_html=True)
-            
-        with col_play:
-            if st.button("▶", key=f"play_{unique_suffix}_{song['id']}", use_container_width=True):
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Кнопки действия располагаются строкой ниже, чтобы не сжимать текст
+        col_btn_play, col_btn_fav = st.columns(2)
+        
+        with col_btn_play:
+            if st.button("▶ Воспроизвести", key=f"play_{unique_suffix}_{song['id']}", use_container_width=True):
                 with st.spinner("Загрузка..."):
                     stream_url = get_audio_stream_url(song['id'])
                     if stream_url:
@@ -211,9 +207,9 @@ def render_song_list(songs, unique_suffix):
                     else:
                         st.error("Ошибка!")
                         
-        with col_fav:
+        with col_btn_fav:
             is_fav = any(f["id"] == song["id"] for f in st.session_state.favorites)
-            btn_label = "❤️" if is_fav else "🤍"
+            btn_label = "❤️ Убрать" if is_fav else "🖤 В избранное"
             if st.button(btn_label, key=f"fav_{unique_suffix}_{song['id']}", use_container_width=True):
                 if is_fav:
                     st.session_state.favorites = [f for f in st.session_state.favorites if f["id"] != song["id"]]
@@ -221,6 +217,7 @@ def render_song_list(songs, unique_suffix):
                     st.session_state.favorites.append(song)
                 save_favorites(st.session_state.favorites)
                 st.rerun()
+        st.write(" ") # Небольшой отступ между треками
 
 with tab_main:
     # Результаты ручного поиска

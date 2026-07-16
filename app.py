@@ -3,8 +3,42 @@ import json
 import os
 import yt_dlp
 
-# Настройка страницы
-st.set_page_config(page_title="MP3 Плеер", layout="centered", page_icon="🎵")
+# Настройка страницы (используем centered layout, чтобы на ПК приложение выглядело как аккуратный мобильный плеер)
+st.set_page_config(page_title="Музыкальный плеер", layout="centered", page_icon="🎵")
+
+# Внедряем CSS стили для адаптивности, крупных шрифтов и удобных кнопок
+st.markdown("""
+<style>
+    /* Увеличенный шрифт для лучшей читаемости */
+    html, body, [class*="css"] {
+        font-size: 16px !important;
+    }
+    
+    /* Делаем кнопки крупными (не менее 44px в высоту), чтобы по ним было удобно кликать пальцем */
+    div.stButton > button {
+        border-radius: 12px !important;
+        font-size: 15px !important;
+        font-weight: bold !important;
+        min-height: 45px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin-bottom: 5px !important;
+    }
+    
+    /* Крупный и четкий текст для вкладок */
+    button[data-baseweb="tab"] {
+        font-size: 17px !important;
+        font-weight: bold !important;
+    }
+    
+    /* Убираем лишние отступы, чтобы на экранах телефонов помещалось больше информации */
+    .block-container {
+        padding-top: 2rem !important;
+        padding-bottom: 2rem !important;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 FAVORITES_FILE = "favorites.json"
 
@@ -33,7 +67,7 @@ if "current_track" not in st.session_state:
 if "current_audio_url" not in st.session_state:
     st.session_state.current_audio_url = None
 
-# Функция для быстрого поиска метаданных
+# Функция поиска на YouTube через yt-dlp
 @st.cache_data(ttl=600)
 def search_youtube(query, limit=10):
     ydl_opts = {
@@ -41,7 +75,7 @@ def search_youtube(query, limit=10):
         'max_results': limit,
         'quiet': True,
         'no_warnings': True,
-        'extract_flat': True,  # Быстрый сбор данных без загрузки тяжелых потоков
+        'extract_flat': True,
     }
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -67,10 +101,10 @@ def search_youtube(query, limit=10):
         st.error(f"Ошибка поиска: {e}")
         return []
 
-# Функция для извлечения прямой ссылки на аудиопоток (MP3/M4A)
+# Получение аудиопотока
 def get_audio_stream_url(video_id):
     ydl_opts = {
-        'format': 'bestaudio/best',  # Извлекаем только аудио самого лучшего качества
+        'format': 'bestaudio/best',
         'quiet': True,
         'no_warnings': True,
     }
@@ -78,14 +112,14 @@ def get_audio_stream_url(video_id):
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
-            return info.get('url')  # Это прямая ссылка на аудиофайл на сервере
+            return info.get('url')
     except Exception:
         return None
 
-# Генерация поискового запроса для рекомендаций (фокус на свежих чартах 2026 года)
+# Генерация поискового запроса для рекомендаций 2026 года
 def get_recommendation_query(lang, category):
     lang_term = {
-        "Русский": "русские хиты 2026 новые песни новинки",
+        "Русский": "русские хиты 2026 новые песни новинки чарт",
         "Английский": "english billboard hits 2026 new songs",
         "Испанский": "top canciones españolas exitos 2026",
         "Французский": "top chansons françaises nouveautés 2026"
@@ -101,143 +135,119 @@ def get_recommendation_query(lang, category):
 
 # --- ИНТЕРФЕЙС ПРИЛОЖЕНИЯ ---
 
-st.title("🎵 MP3 Музыкальный плеер")
+st.title("🎵 Мобильный MP3 Плеер")
 
 # 1. ПОИСК НАВЕРХУ
-st.write("### 🔍 Поиск музыки")
+st.write("### 🔍 Поиск песни")
 search_input = st.text_input(
     "Введите название песни или исполнителя и нажмите Enter", 
-    placeholder="Например: Асфальт 8, MACAN, Coldplay...", 
-    key="search_bar"
+    placeholder="Например: MACAN, Любэ, Coldplay...", 
+    key="search_bar",
+    label_visibility="collapsed"
 )
 
-# 2. АУДИОПЛЕЕР (Отображается, когда трек запущен)
+# 2. АУДИОПЛЕЕР (Отображается, когда запущен трек)
 if st.session_state.current_track and st.session_state.current_audio_url:
     st.write("---")
     track = st.session_state.current_track
     audio_url = st.session_state.current_audio_url
     
-    col_img, col_text = st.columns([1, 4])
-    with col_img:
-        st.image(track["image"], width=80)
-    with col_text:
-        st.markdown(f"#### **{track['title']}**")
-        st.text(f"Исполнитель: {track['artist']}")
+    # Красивое отображение играющего трека
+    st.markdown(f"""
+    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px; background-color: #1e1e1e; padding: 15px; border-radius: 15px;">
+        <img src="{track["image"]}" style="width: 70px; height: 70px; border-radius: 10px; object-fit: cover;">
+        <div>
+            <div style="font-size: 18px; font-weight: bold; color: #1DB954;">Сейчас играет:</div>
+            <div style="font-size: 16px; font-weight: bold; color: white;">{track['title']}</div>
+            <div style="font-size: 14px; color: #b3b3b3;">{track['artist']}</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
     
-    # Чистый аудиоплеер без видеоплеера YouTube
+    # Чистый аудиоплеер
     st.audio(audio_url, format="audio/mp3", autoplay=True)
     st.write("---")
 
-# 3. НАСТРОЙКИ РЕКОМЕНДАЦИЙ
-st.write("### ⚙️ Настройки рекомендаций")
+# 3. НАСТРОЙКИ РЕКОМЕНДАЦИЙ (Выбор языка и категории)
+st.write("### ⚙️ Настройки музыки")
 col_lang, col_cat = st.columns(2)
 with col_lang:
-    selected_lang = st.selectbox("Выбрать язык", ["Русский", "Английский", "Испанский", "Французский"], index=0)
+    selected_lang = st.selectbox("Язык песен:", ["Русский", "Английский", "Испанский", "Французский"], index=0)
 with col_cat:
-    selected_cat = st.selectbox("Выбрать категорию", ["Популярные", "Новые", "Старые"], index=0)
+    selected_cat = st.selectbox("Категория:", ["Популярные", "Новые", "Старые"], index=0)
 
-# Автоматический запрос на основе настроек
 recs_query = get_recommendation_query(selected_lang, selected_cat)
 
-# Вкладки
-tab_main, tab_favs = st.tabs(["✨ Главная", "⭐ Моё Избранное"])
+# Вкладки плеера
+tab_main, tab_favs = st.tabs(["✨ Главная (Рекомендации)", "⭐ Моё Избранное"])
+
+# Функция для вывода списка треков (адаптированная под мобильный и ПК)
+def render_song_list(songs, unique_suffix):
+    for song in songs:
+        # 3 колонки: [Контент (картинка + текст), Кнопка играть, Кнопка избранного]
+        # Соотношение 4:1.2:1.2 отлично помещается на экранах любых смартфонов
+        col_content, col_play, col_fav = st.columns([4, 1.2, 1.2])
+        
+        with col_content:
+            # HTML-карточка песни: картинка и текст в одной строке
+            st.markdown(f"""
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px; height: 50px;">
+                <img src="{song["image"]}" style="width: 50px; height: 50px; border-radius: 8px; object-fit: cover;">
+                <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    <div style="font-weight: bold; font-size: 15px; color: #FFFFFF; overflow: hidden; text-overflow: ellipsis; max-width: 250px;">{song['title']}</div>
+                    <div style="font-size: 13px; color: #B3B3B3; overflow: hidden; text-overflow: ellipsis; max-width: 250px;">{song['artist']}</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        with col_play:
+            if st.button("▶", key=f"play_{unique_suffix}_{song['id']}", use_container_width=True):
+                with st.spinner("Загрузка..."):
+                    stream_url = get_audio_stream_url(song['id'])
+                    if stream_url:
+                        st.session_state.current_track = song
+                        st.session_state.current_audio_url = stream_url
+                        st.rerun()
+                    else:
+                        st.error("Ошибка!")
+                        
+        with col_fav:
+            is_fav = any(f["id"] == song["id"] for f in st.session_state.favorites)
+            btn_label = "❤️" if is_fav else "🤍"
+            if st.button(btn_label, key=f"fav_{unique_suffix}_{song['id']}", use_container_width=True):
+                if is_fav:
+                    st.session_state.favorites = [f for f in st.session_state.favorites if f["id"] != song["id"]]
+                else:
+                    st.session_state.favorites.append(song)
+                save_favorites(st.session_state.favorites)
+                st.rerun()
 
 with tab_main:
-    # Вывод результатов поиска
+    # Результаты ручного поиска
     if search_input:
-        st.subheader(f"🔍 Результаты поиска для: «{search_input}»")
-        with st.spinner("Ищем треки..."):
+        st.subheader(f"🔍 Найдено по запросу «{search_input}»")
+        with st.spinner("Поиск треков..."):
             search_results = search_youtube(search_input, limit=6)
         
         if not search_results:
             st.warning("Ничего не найдено.")
         else:
-            for song in search_results:
-                col_img, col_info, col_play, col_fav = st.columns([1, 4, 1.5, 1.5])
-                with col_img:
-                    st.image(song["image"], width=60)
-                with col_info:
-                    st.markdown(f"**{song['title']}**  \n*{song['artist']}*")
-                with col_play:
-                    if st.button("▶ Слушать", key=f"search_play_{song['id']}", use_container_width=True):
-                        with st.spinner("Получение аудиопотока..."):
-                            stream_url = get_audio_stream_url(song['id'])
-                            if stream_url:
-                                st.session_state.current_track = song
-                                st.session_state.current_audio_url = stream_url
-                                st.rerun()
-                            else:
-                                st.error("Не удалось запустить этот трек.")
-                with col_fav:
-                    is_fav = any(f["id"] == song["id"] for f in st.session_state.favorites)
-                    btn_label = "❤️ Убрать" if is_fav else "🖤 В избранное"
-                    if st.button(btn_label, key=f"search_fav_{song['id']}", use_container_width=True):
-                        if is_fav:
-                            st.session_state.favorites = [f for f in st.session_state.favorites if f["id"] != song["id"]]
-                        else:
-                            st.session_state.favorites.append(song)
-                        save_favorites(st.session_state.favorites)
-                        st.rerun()
+            render_song_list(search_results, "search")
             st.write("---")
 
     # Секция рекомендаций
-    st.subheader(f"🔥 Рекомендации ({selected_lang} / {selected_cat})")
-    with st.spinner("Загрузка свежих рекомендаций..."):
+    st.subheader(f"🔥 Рекомендации")
+    with st.spinner("Загрузка рекомендаций..."):
         recs_results = search_youtube(recs_query, limit=10)
         
     if not recs_results:
         st.info("Не удалось загрузить рекомендации.")
     else:
-        for song in recs_results:
-            col_img, col_info, col_play, col_fav = st.columns([1, 4, 1.5, 1.5])
-            with col_img:
-                st.image(song["image"], width=60)
-            with col_info:
-                st.markdown(f"**{song['title']}**  \n*{song['artist']}*")
-            with col_play:
-                if st.button("▶ Слушать", key=f"rec_play_{song['id']}", use_container_width=True):
-                    with st.spinner("Получение аудиопотока..."):
-                        stream_url = get_audio_stream_url(song['id'])
-                        if stream_url:
-                            st.session_state.current_track = song
-                            st.session_state.current_audio_url = stream_url
-                            st.rerun()
-                        else:
-                            st.error("Не удалось запустить этот трек.")
-            with col_fav:
-                is_fav = any(f["id"] == song["id"] for f in st.session_state.favorites)
-                btn_label = "❤️ Убрать" if is_fav else "🖤 В избранное"
-                if st.button(btn_label, key=f"rec_fav_{song['id']}", use_container_width=True):
-                    if is_fav:
-                        st.session_state.favorites = [f for f in st.session_state.favorites if f["id"] != song["id"]]
-                    else:
-                        st.session_state.favorites.append(song)
-                    save_favorites(st.session_state.favorites)
-                    st.rerun()
+        render_song_list(recs_results, "rec")
 
 with tab_favs:
     st.subheader("⭐ Избранное")
     if not st.session_state.favorites:
         st.info("Вы еще не добавили ни одного трека в избранное.")
     else:
-        for song in st.session_state.favorites:
-            col_img, col_info, col_play, col_fav = st.columns([1, 4, 1.5, 1.5])
-            with col_img:
-                st.image(song["image"], width=60)
-            with col_info:
-                st.markdown(f"**{song['title']}**  \n*{song['artist']}*")
-            with col_play:
-                if st.button("▶ Слушать", key=f"fav_play_{song['id']}", use_container_width=True):
-                    with st.spinner("Получение аудиопотока..."):
-                        stream_url = get_audio_stream_url(song['id'])
-                        if stream_url:
-                            st.session_state.current_track = song
-                            st.session_state.current_audio_url = stream_url
-                            st.rerun()
-                        else:
-                            st.error("Не удалось запустить этот трек.")
-            with col_fav:
-                if st.button("❌ Удалить", key=f"fav_del_{song['id']}", use_container_width=True):
-                    st.session_state.favorites = [f for f in st.session_state.favorites if f["id"] != song["id"]]
-                    save_favorites(st.session_state.favorites)
-                    st.rerun()
+        render_song_list(st.session_state.favorites, "fav_tab")
